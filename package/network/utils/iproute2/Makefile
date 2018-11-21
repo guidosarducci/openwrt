@@ -150,6 +150,8 @@ endef
 define Package/tc/install
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/tc/tc $(1)/usr/sbin/
+	$(INSTALL_DIR) $(1)/etc/iproute2
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/etc/iproute2/ematch_map $(1)/etc/iproute2
 	$(INSTALL_DIR) $(1)/etc/hotplug.d/iface
 	$(INSTALL_BIN) ./files/15-teql $(1)/etc/hotplug.d/iface/
 endef
