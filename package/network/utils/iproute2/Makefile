@@ -53,7 +53,7 @@ endef
 define Package/tc
 $(call Package/iproute2/Default)
   TITLE:=Traffic control utility
-  DEPENDS:=+kmod-sched-core +(PACKAGE_devlink||PACKAGE_rdma):libmnl
+  DEPENDS:=+kmod-sched-core +libxtables +(PACKAGE_devlink||PACKAGE_rdma):libmnl
 endef
 
 define Package/genl
@@ -105,11 +105,6 @@ ifdef CONFIG_PACKAGE_rdma
 endif
 
 define Build/Configure
-	$(SED) "s,-I/usr/include/db3,," $(PKG_BUILD_DIR)/Makefile
-	$(SED) "s,^KERNEL_INCLUDE.*,KERNEL_INCLUDE=$(LINUX_DIR)/include," \
-		$(PKG_BUILD_DIR)/Makefile
-	$(SED) "s,^LIBC_INCLUDE.*,LIBC_INCLUDE=$(STAGING_DIR)/include," \
-		$(PKG_BUILD_DIR)/Makefile
 	echo "static const char SNAPSHOT[] = \"$(PKG_VERSION)-$(PKG_RELEASE)-openwrt\";" \
 		> $(PKG_BUILD_DIR)/include/SNAPSHOT.h
 endef
