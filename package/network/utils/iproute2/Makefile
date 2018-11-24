@@ -48,7 +48,7 @@ $(call Package/iproute2/Default)
  VARIANT:=full
  PROVIDES:=ip
  ALTERNATIVES:=300:/sbin/ip:/usr/libexec/ip-full
- DEPENDS:=+libnl-tiny +(PACKAGE_devlink||PACKAGE_rdma):libmnl
+ DEPENDS:=+libnl-tiny +PACKAGE_tc-full:libelf1 +(PACKAGE_devlink||PACKAGE_rdma):libmnl
 endef
 
 define Package/tc-tiny
@@ -67,7 +67,7 @@ $(call Package/iproute2/Default)
   VARIANT:=full
   PROVIDES:=tc
   ALTERNATIVES:=300:/sbin/tc:/usr/libexec/tc-full
-  DEPENDS:=+kmod-sched-core +libxtables +(PACKAGE_devlink||PACKAGE_rdma):libmnl
+  DEPENDS:=+kmod-sched-core +libxtables +libelf1 +(PACKAGE_devlink||PACKAGE_rdma):libmnl
 endef
 
 define Package/genl
@@ -108,6 +108,13 @@ endef
 
 ifeq ($(BUILD_VARIANT),tiny)
   IP_CONFIG_TINY:=y
+  HAVE_ELF:=n
+endif
+
+ifeq ($(BUILD_VARIANT),full)
+ifdef CONFIG_PACKAGE_tc-full
+  HAVE_ELF:=y
+endif
 endif
 
 ifdef CONFIG_PACKAGE_devlink
@@ -131,6 +138,7 @@ MAKE_FLAGS += \
 	KERNEL_INCLUDE="$(LINUX_DIR)/user_headers/include" \
 	SHARED_LIBS="" \
 	IP_CONFIG_TINY=$(IP_CONFIG_TINY) \
+	HAVE_ELF=$(HAVE_ELF) \
 	HAVE_MNL=$(HAVE_MNL) \
 	IPT_LIB_DIR=/usr/lib/iptables \
 	XT_LIB_DIR=/usr/lib/iptables \
