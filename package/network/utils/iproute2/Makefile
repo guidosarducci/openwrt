@@ -118,7 +118,7 @@ TARGET_CFLAGS += -ffunction-sections -fdata-sections
 
 MAKE_FLAGS += \
 	EXTRA_CCOPTS="-I$(STAGING_DIR)/usr/include/libnl-tiny" \
-	KERNEL_INCLUDE="$(LINUX_DIR)/include" \
+	KERNEL_INCLUDE="$(LINUX_DIR)/user_headers/include" \
 	SHARED_LIBS="" \
 	LDFLAGS="$(TARGET_LDFLAGS) -Wl,--gc-sections" \
 	IP_CONFIG_TINY=$(IP_CONFIG_TINY) \
