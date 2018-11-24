@@ -100,6 +100,14 @@ ifeq ($(BUILD_VARIANT),tiny)
   IP_CONFIG_TINY:=y
 endif
 
+ifeq ($(BUILD_VARIANT),full)
+  HAVE_ELF:=y
+endif
+
+ifeq ($(BUILD_VARIANT),tc)
+  HAVE_ELF:=y
+endif
+
 ifdef CONFIG_PACKAGE_devlink
   HAVE_MNL:=y
 endif
@@ -121,6 +129,7 @@ MAKE_FLAGS += \
 	KERNEL_INCLUDE="$(LINUX_DIR)/user_headers/include" \
 	SHARED_LIBS="" \
 	IP_CONFIG_TINY=$(IP_CONFIG_TINY) \
+	HAVE_ELF=$(HAVE_ELF) \
 	HAVE_MNL=$(HAVE_MNL) \
 	IPT_LIB_DIR=/usr/lib/iptables \
 	XT_LIB_DIR=/usr/lib/iptables \
