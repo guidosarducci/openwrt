@@ -1,0 +1,11 @@
+--- a/configure
++++ b/configure
+@@ -253,7 +253,7 @@ EOF
+ 
+ check_elf()
+ {
+-    if ${PKG_CONFIG} libelf --exists
++    if [ "${HAVE_ELF}" = "y" ] && ${PKG_CONFIG} libelf --exists
+     then
+ 	echo "HAVE_ELF:=y" >>$CONFIG
+ 	echo "yes"
