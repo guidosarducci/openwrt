@@ -109,11 +109,13 @@ endef
 ifeq ($(BUILD_VARIANT),tiny)
   IP_CONFIG_TINY:=y
   HAVE_ELF:=n
+  SHARED_LIBS:=n
 endif
 
 ifeq ($(BUILD_VARIANT),full)
 ifdef CONFIG_PACKAGE_tc-full
   HAVE_ELF:=y
+  SHARED_LIBS:=y
 endif
 endif
 
@@ -136,7 +138,7 @@ TARGET_CPPFLAGS += -I$(STAGING_DIR)/usr/include/libnl-tiny
 
 MAKE_FLAGS += \
 	KERNEL_INCLUDE="$(LINUX_DIR)/user_headers/include" \
-	SHARED_LIBS="" \
+	SHARED_LIBS=$(SHARED_LIBS) \
 	IP_CONFIG_TINY=$(IP_CONFIG_TINY) \
 	HAVE_ELF=$(HAVE_ELF) \
 	HAVE_MNL=$(HAVE_MNL) \
@@ -183,6 +185,10 @@ define Package/tc-full/install
 	$(call Package/tc/install/Default,$(1))
 	$(INSTALL_DIR) $(1)/usr/libexec
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/tc/tc $(1)/usr/libexec/tc-full
+ifeq ($(SHARED_LIBS),y)
+	$(INSTALL_DIR) $(1)/usr/lib/tc
+	$(CP) $(PKG_BUILD_DIR)/tc/*.so $(1)/usr/lib/tc
+endif
 endef
 
 # ensure other packages are only saved during 'tiny' builds.
