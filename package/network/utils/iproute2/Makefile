@@ -36,6 +36,7 @@ define Package/ip-tiny
 $(call Package/iproute2/Default)
  TITLE:=Routing control utility (Minimal)
  VARIANT:=tiny
+ DEFAULT_VARIANT:=1
  PROVIDES:=ip
  ALTERNATIVES:=200:/sbin/ip:/usr/libexec/ip-tiny
  DEPENDS:=+libnl-tiny +(PACKAGE_devlink||PACKAGE_rdma):libmnl
@@ -50,9 +51,22 @@ $(call Package/iproute2/Default)
  DEPENDS:=+libnl-tiny +(PACKAGE_devlink||PACKAGE_rdma):libmnl
 endef
 
-define Package/tc
+define Package/tc-tiny
 $(call Package/iproute2/Default)
-  TITLE:=Traffic control utility
+  TITLE:=Traffic control utility (Minimal)
+  VARIANT:=tiny
+  DEFAULT_VARIANT:=1
+  PROVIDES:=tc
+  ALTERNATIVES:=200:/sbin/tc:/usr/libexec/tc-tiny
+  DEPENDS:=+kmod-sched-core +libxtables +(PACKAGE_devlink||PACKAGE_rdma):libmnl
+endef
+
+define Package/tc-full
+$(call Package/iproute2/Default)
+  TITLE:=Traffic control utility (Full)
+  VARIANT:=full
+  PROVIDES:=tc
+  ALTERNATIVES:=300:/sbin/tc:/usr/libexec/tc-full
   DEPENDS:=+kmod-sched-core +libxtables +(PACKAGE_devlink||PACKAGE_rdma):libmnl
 endef
 
@@ -126,12 +140,15 @@ define Build/Compile
 	+$(MAKE_VARS) $(MAKE) $(PKG_JOBS) -C $(PKG_BUILD_DIR) $(MAKE_FLAGS)
 endef
 
+# ensure full functionality for dev libraries
+ifeq ($(BUILD_VARIANT),full)
 define Build/InstallDev
 	$(INSTALL_DIR) $(1)/usr/include
 	$(CP) $(PKG_BUILD_DIR)/include/{libgenl,libnetlink}.h $(1)/usr/include/
 	$(INSTALL_DIR) $(1)/usr/lib
 	$(CP) $(PKG_BUILD_DIR)/lib/libnetlink.a $(1)/usr/lib/
 endef
+endif
 
 define Package/ip-tiny/install
 	$(INSTALL_DIR) $(1)/usr/libexec
@@ -143,13 +160,25 @@ define Package/ip-full/install
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/ip/ip $(1)/usr/libexec/ip-full
 endef
 
-define Package/tc/install
-	$(INSTALL_DIR) $(1)/usr/sbin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/tc/tc $(1)/usr/sbin/
+define Package/tc/install/Default
 	$(INSTALL_DIR) $(1)/etc/hotplug.d/iface
 	$(INSTALL_BIN) ./files/15-teql $(1)/etc/hotplug.d/iface/
 endef
 
+define Package/tc-tiny/install
+	$(call Package/tc/install/Default,$(1))
+	$(INSTALL_DIR) $(1)/usr/libexec
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/tc/tc $(1)/usr/libexec/tc-tiny
+endef
+
+define Package/tc-full/install
+	$(call Package/tc/install/Default,$(1))
+	$(INSTALL_DIR) $(1)/usr/libexec
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/tc/tc $(1)/usr/libexec/tc-full
+endef
+
+# ensure other packages are only saved during 'tiny' builds.
+ifeq ($(BUILD_VARIANT),tiny)
 define Package/genl/install
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/genl/genl $(1)/usr/sbin/
@@ -179,10 +208,12 @@ define Package/rdma/install
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/rdma/rdma $(1)/usr/sbin/
 endef
+endif
 
 $(eval $(call BuildPackage,ip-tiny))
 $(eval $(call BuildPackage,ip-full))
-$(eval $(call BuildPackage,tc))
+$(eval $(call BuildPackage,tc-tiny))
+$(eval $(call BuildPackage,tc-full))
 $(eval $(call BuildPackage,genl))
 $(eval $(call BuildPackage,ip-bridge))
 $(eval $(call BuildPackage,ss))
