@@ -170,19 +170,12 @@ define Package/ip-full/install
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/ip/ip $(1)/usr/libexec/ip-full
 endef
 
-define Package/tc/install/Default
-	$(INSTALL_DIR) $(1)/etc/hotplug.d/iface
-	$(INSTALL_BIN) ./files/15-teql $(1)/etc/hotplug.d/iface/
-endef
-
 define Package/tc-tiny/install
-	$(call Package/tc/install/Default,$(1))
 	$(INSTALL_DIR) $(1)/usr/libexec
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/tc/tc $(1)/usr/libexec/tc-tiny
 endef
 
 define Package/tc-full/install
-	$(call Package/tc/install/Default,$(1))
 	$(INSTALL_DIR) $(1)/usr/libexec
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/tc/tc $(1)/usr/libexec/tc-full
 ifeq ($(SHARED_LIBS),y)
