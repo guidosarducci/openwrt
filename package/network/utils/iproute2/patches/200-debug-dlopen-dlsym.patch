@@ -1,0 +1,46 @@
+diff --git a/tc/m_action.c b/tc/m_action.c
+index d5fd5af..e6d17e9 100644
+--- a/tc/m_action.c
++++ b/tc/m_action.c
+@@ -103,13 +103,23 @@ restart_s:
+ 	snprintf(buf, sizeof(buf), "%s/m_%s.so", get_tc_lib(), str);
+ 	dlh = dlopen(buf, RTLD_LAZY | RTLD_GLOBAL);
+ 	if (dlh == NULL) {
++		fprintf(stderr,"FAILED: dlopen - %s\n", buf);
++		fprintf(stderr,"FAILED: dlerror - %s\n",dlerror());
+ 		dlh = aBODY;
+ 		if (dlh == NULL) {
++			fprintf(stderr,"FAILED: dlopen - %s\n", "aBODY");
++			fprintf(stderr,"FAILED: dlerror - %s\n",dlerror());
+ 			dlh = aBODY = dlopen(NULL, RTLD_LAZY);
+-			if (dlh == NULL)
++			if (dlh == NULL) {
++				fprintf(stderr,"FAILED: dlopen - %s\n", "NULL");
++				fprintf(stderr,"FAILED: dlerror - %s\n",dlerror());
+ 				goto noexist;
+-		}
+-	}
++			}
++			fprintf(stderr,"SUCCESS: dlopen - %s\n", "NULL");
++		} else
++		fprintf(stderr,"SUCCESS: dlopen - %s\n", "aBODY");
++	} else
++	fprintf(stderr,"SUCCESS: dlopen - %s\n",buf);
+ 
+ 	snprintf(buf, sizeof(buf), "%s_action_util", str);
+ 	a = dlsym(dlh, buf);
+@@ -117,11 +127,14 @@ restart_s:
+ 		goto noexist;
+ 
+ reg:
++	fprintf(stderr,"SUCCESS: dlsym - %s\n",buf);
+ 	a->next = action_list;
+ 	action_list = a;
+ 	return a;
+ 
+ noexist:
++	fprintf(stderr,"FAILED: dlsym - %s\n",buf);
++	fprintf(stderr,"FAILED: dlerror - %s\n",dlerror());
+ #ifdef CONFIG_GACT
+ 	if (!looked4gact) {
+ 		looked4gact = 1;
