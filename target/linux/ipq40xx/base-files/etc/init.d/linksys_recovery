@@ -1,0 +1,20 @@
+#!/bin/sh /etc/rc.common
+#
+
+START=97
+boot() {
+	. /lib/functions.sh
+
+	case $(board_name) in
+		linksys,ea6350v3)
+			# make sure auto_recovery in uboot is always on
+			IS_AUTO_RECOVERY="$(fw_printenv -n auto_recovery)"
+			if [ "$IS_AUTO_RECOVERY" != "yes" ] ; then
+				fw_setenv auto_recovery yes
+			fi
+			# reset the boot counter
+			fw_setenv boot_count 0
+			mtd resetbc s_env
+			;;
+	esac
+}
