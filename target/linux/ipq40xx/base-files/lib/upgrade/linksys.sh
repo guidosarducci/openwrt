@@ -5,9 +5,9 @@ linksys_get_target_firmware() {
 		# current primary boot - update alt boot
 		target_firmware="alt_kernel"
 		fw_setenv boot_part 2
-		# In the Linksys EA6350v3, it is enough to set the boot_part as the boot command line is
+		# In EA6350v3 setting the boot_part suffices since bootcmd is:
 		# bootcmd=if test $boot_part = 1; then run bootpart1; else run bootpart2; fi
-		# - You probably want to use that if your device's uboot does not eval bootcmd
+		# so no need to change bootcmd:
 		#fw_setenv bootcmd "run altnandboot"
 	elif [ "$cur_boot_part" = "2" ]; then
 		# current alt boot - update primary boot
@@ -18,7 +18,6 @@ linksys_get_target_firmware() {
 
 	# re-enable recovery so we get back if the new firmware is broken
 	fw_setenv auto_recovery yes
-	# see /etc/init.d/zlinksys_recovery
 
 	echo "$target_firmware"
 }
