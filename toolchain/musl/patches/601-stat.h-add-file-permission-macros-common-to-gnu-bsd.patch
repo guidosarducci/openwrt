@@ -1,0 +1,27 @@
+From 39a1e54cb448f39e2b4d79736920d788f837efcb Mon Sep 17 00:00:00 2001
+From: Tony Ambardar <Tony.Ambardar@gmail.com>
+Date: Sat, 11 Jul 2020 07:05:21 -0700
+Subject: [PATCH 1/2] stat.h: add file permission macros common to gnu/bsd
+
+Signed-off-by: Tony Ambardar <Tony.Ambardar@gmail.com>
+---
+ include/sys/stat.h | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/include/sys/stat.h b/include/sys/stat.h
+index 10d446c4..8d882be9 100644
+--- a/include/sys/stat.h
++++ b/include/sys/stat.h
+@@ -96,6 +96,9 @@ int lchmod(const char *, mode_t);
+ #define S_IREAD S_IRUSR
+ #define S_IWRITE S_IWUSR
+ #define S_IEXEC S_IXUSR
++#define ACCESSPERMS (S_IRWXU|S_IRWXG|S_IRWXO)
++#define ALLPERMS (S_ISUID|S_ISGID|S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO)
++#define DEFFILEMODE (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
+ #endif
+ 
+ #if defined(_LARGEFILE64_SOURCE) || defined(_GNU_SOURCE)
+-- 
+2.17.1
+
