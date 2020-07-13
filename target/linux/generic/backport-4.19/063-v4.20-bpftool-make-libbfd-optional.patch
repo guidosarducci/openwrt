@@ -1,0 +1,162 @@
+From 56a87025f64d48184e1dc7836433c43e674e2bf3 Mon Sep 17 00:00:00 2001
+From: Stanislav Fomichev <sdf@google.com>
+Date: Mon, 12 Nov 2018 13:44:10 -0800
+Subject: [PATCH 1/2] bpftool: make libbfd optional
+
+Make it possible to build bpftool without libbfd. libbfd and libopcodes are
+typically provided in dev/dbg packages (binutils-dev in debian) which we
+usually don't have installed on the fleet machines and we'd like a way to have
+bpftool version that works without installing any additional packages.
+This excludes support for disassembling jit-ted code and prints an error if
+the user tries to use these features.
+
+Tested by:
+cat > FEATURES_DUMP.bpftool <<EOF
+feature-libbfd=0
+feature-disassembler-four-args=1
+feature-reallocarray=0
+feature-libelf=1
+feature-libelf-mmap=1
+feature-bpf=1
+EOF
+FEATURES_DUMP=$PWD/FEATURES_DUMP.bpftool make
+ldd bpftool | grep libbfd
+
+Signed-off-by: Stanislav Fomichev <sdf@google.com>
+Acked-by: Jakub Kicinski <jakub.kicinski@netronome.com>
+Signed-off-by: Alexei Starovoitov <ast@kernel.org>
+(cherry picked from commit 29a9c10e4110e368443f0b606d71557edee7f2cc)
+---
+ tools/bpf/bpftool/Makefile     | 20 ++++++++++++++++++--
+ tools/bpf/bpftool/jit_disasm.c |  8 +++++++-
+ tools/bpf/bpftool/main.c       |  3 ---
+ tools/bpf/bpftool/main.h       | 16 +++++++++++++++-
+ tools/bpf/bpftool/prog.c       |  3 +++
+ 5 files changed, 43 insertions(+), 7 deletions(-)
+
+diff --git a/tools/bpf/bpftool/Makefile b/tools/bpf/bpftool/Makefile
+index 74288a2197ab..dd1ab9f71545 100644
+--- a/tools/bpf/bpftool/Makefile
++++ b/tools/bpf/bpftool/Makefile
+@@ -46,7 +46,14 @@ CFLAGS += -DPACKAGE='"bpftool"' -D__EXPORTED_HEADERS__ \
+ 	-I$(srctree)/tools/lib/bpf \
+ 	-I$(srctree)/tools/perf
+ CFLAGS += -DBPFTOOL_VERSION='"$(BPFTOOL_VERSION)"'
+-LIBS = -lelf -lbfd -lopcodes $(LIBBPF)
++ifneq ($(EXTRA_CFLAGS),)
++CFLAGS += $(EXTRA_CFLAGS)
++endif
++ifneq ($(EXTRA_LDFLAGS),)
++LDFLAGS += $(EXTRA_LDFLAGS)
++endif
++
++LIBS = -lelf $(LIBBPF)
+ 
+ INSTALL ?= install
+ RM ?= rm -f
+@@ -83,7 +90,16 @@ include $(wildcard $(OUTPUT)*.d)
+ 
+ all: $(OUTPUT)bpftool
+ 
+-SRCS = $(wildcard *.c)
++BFD_SRCS = jit_disasm.c
++
++SRCS = $(filter-out $(BFD_SRCS),$(wildcard *.c))
++
++ifeq ($(feature-libbfd),1)
++CFLAGS += -DHAVE_LIBBFD_SUPPORT
++SRCS += $(BFD_SRCS)
++LIBS += -lbfd -lopcodes
++endif
++
+ OBJS = $(patsubst %.c,$(OUTPUT)%.o,$(SRCS)) $(OUTPUT)disasm.o
+ 
+ $(OUTPUT)disasm.o: $(srctree)/kernel/bpf/disasm.c
+diff --git a/tools/bpf/bpftool/jit_disasm.c b/tools/bpf/bpftool/jit_disasm.c
+index 73d7252729fa..3249d05a4c8c 100644
+--- a/tools/bpf/bpftool/jit_disasm.c
++++ b/tools/bpf/bpftool/jit_disasm.c
+@@ -112,7 +112,7 @@ void disasm_print_insn(unsigned char *image, ssize_t len, int opcodes,
+ 		if (inf) {
+ 			bfdf->arch_info = inf;
+ 		} else {
+-			p_err("No libfd support for %s", arch);
++			p_err("No libbfd support for %s", arch);
+ 			return;
+ 		}
+ 	}
+@@ -184,3 +184,9 @@ void disasm_print_insn(unsigned char *image, ssize_t len, int opcodes,
+ 
+ 	bfd_close(bfdf);
+ }
++
++int disasm_init(void)
++{
++	bfd_init();
++	return 0;
++}
+diff --git a/tools/bpf/bpftool/main.c b/tools/bpf/bpftool/main.c
+index d15a62be6cf0..4176d2f10c46 100644
+--- a/tools/bpf/bpftool/main.c
++++ b/tools/bpf/bpftool/main.c
+@@ -31,7 +31,6 @@
+  * SOFTWARE.
+  */
+ 
+-#include <bfd.h>
+ #include <ctype.h>
+ #include <errno.h>
+ #include <getopt.h>
+@@ -392,8 +391,6 @@ int main(int argc, char **argv)
+ 	if (argc < 0)
+ 		usage();
+ 
+-	bfd_init();
+-
+ 	ret = cmd_select(cmds, argc, argv, do_help);
+ 
+ 	if (json_output)
+diff --git a/tools/bpf/bpftool/main.h b/tools/bpf/bpftool/main.h
+index 057a227bdb9f..ed5c4184d903 100644
+--- a/tools/bpf/bpftool/main.h
++++ b/tools/bpf/bpftool/main.h
+@@ -141,8 +141,22 @@ int prog_parse_fd(int *argc, char ***argv);
+ int map_parse_fd(int *argc, char ***argv);
+ int map_parse_fd_and_info(int *argc, char ***argv, void *info, __u32 *info_len);
+ 
++#ifdef HAVE_LIBBFD_SUPPORT
+ void disasm_print_insn(unsigned char *image, ssize_t len, int opcodes,
+		       const char *arch);
++int disasm_init(void);
++#else
++static inline
++void disasm_print_insn(unsigned char *image, ssize_t len, int opcodes,
++		       const char *arch)
++{
++}
++static inline int disasm_init(void)
++{
++	p_err("No libbfd support");
++	return -1;
++}
++#endif
+ void print_data_json(uint8_t *data, size_t len);
+ void print_hex_data_json(uint8_t *data, size_t len);
+ 
+diff --git a/tools/bpf/bpftool/prog.c b/tools/bpf/bpftool/prog.c
+index 4f9611af4642..925b3cd61192 100644
+--- a/tools/bpf/bpftool/prog.c
++++ b/tools/bpf/bpftool/prog.c
+@@ -447,6 +447,9 @@ static int do_dump(int argc, char **argv)
+ 	int fd;
+ 
+ 	if (is_prefix(*argv, "jited")) {
++		if (disasm_init())
++			return -1;
++
+ 		member_len = &info.jited_prog_len;
+ 		member_ptr = &info.jited_prog_insns;
+ 	} else if (is_prefix(*argv, "xlated")) {
+-- 
+2.17.1
+

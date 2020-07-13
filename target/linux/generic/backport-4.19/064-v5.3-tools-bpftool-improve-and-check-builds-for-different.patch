@@ -1,0 +1,95 @@
+From e42f9b72ffd8eef3c0537f8bc7870fb05fb3c467 Mon Sep 17 00:00:00 2001
+From: Quentin Monnet <quentin.monnet@netronome.com>
+Date: Fri, 30 Aug 2019 12:00:38 +0100
+Subject: [PATCH 2/2] tools: bpftool: improve and check builds for different
+ make invocations
+
+There are a number of alternative "make" invocations that can be used to
+compile bpftool. The following invocations are expected to work:
+
+  - through the kbuild system, from the top of the repository
+    (make tools/bpf)
+  - by telling make to change to the bpftool directory
+    (make -C tools/bpf/bpftool)
+  - by building the BPF tools from tools/
+    (cd tools && make bpf)
+  - by running make from bpftool directory
+    (cd tools/bpf/bpftool && make)
+
+Additionally, setting the O or OUTPUT variables should tell the build
+system to use a custom output path, for each of these alternatives.
+
+The following patch fixes the following invocations:
+
+  $ make tools/bpf
+  $ make tools/bpf O=<dir>
+  $ make -C tools/bpf/bpftool OUTPUT=<dir>
+  $ make -C tools/bpf/bpftool O=<dir>
+  $ cd tools/ && make bpf O=<dir>
+  $ cd tools/bpf/bpftool && make OUTPUT=<dir>
+  $ cd tools/bpf/bpftool && make O=<dir>
+
+After this commit, the build still fails for two variants when passing
+the OUTPUT variable:
+
+  $ make tools/bpf OUTPUT=<dir>
+  $ cd tools/ && make bpf OUTPUT=<dir>
+
+In order to remember and check what make invocations are supposed to
+work, and to document the ones which do not, a new script is added to
+the BPF selftests. Note that some invocations require the kernel to be
+configured, so the script skips them if no .config file is found.
+
+v2:
+- In make_and_clean(), set $ERROR to 1 when "make" returns non-zero,
+  even if the binary was produced.
+- Run "make clean" from the correct directory (bpf/ instead of bpftool/,
+  when relevant).
+
+Reported-by: Lorenz Bauer <lmb@cloudflare.com>
+Signed-off-by: Quentin Monnet <quentin.monnet@netronome.com>
+Reviewed-by: Jakub Kicinski <jakub.kicinski@netronome.com>
+Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+
+(cherry picked from commit 45c5589d07158eb1d0b5b313314706024bf451c5)
+[Removed self-test program changes]
+---
+ tools/bpf/bpftool/Makefile | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/tools/bpf/bpftool/Makefile b/tools/bpf/bpftool/Makefile
+index dd1ab9f71545..d2499305e0e4 100644
+--- a/tools/bpf/bpftool/Makefile
++++ b/tools/bpf/bpftool/Makefile
+@@ -16,21 +16,23 @@ endif
+ BPF_DIR = $(srctree)/tools/lib/bpf/
+ 
+ ifneq ($(OUTPUT),)
+-  BPF_PATH = $(OUTPUT)
++  LIBBPF_OUTPUT = $(OUTPUT)/libbpf/
++  LIBBPF_PATH = $(LIBBPF_OUTPUT)
+ else
+-  BPF_PATH = $(BPF_DIR)
++  LIBBPF_PATH = $(BPF_DIR)
+ endif
+ 
+-LIBBPF = $(BPF_PATH)libbpf.a
++LIBBPF = $(LIBBPF_PATH)libbpf.a
+ 
+ BPFTOOL_VERSION := $(shell make --no-print-directory -sC ../../.. kernelversion)
+ 
+ $(LIBBPF): FORCE
+-	$(Q)$(MAKE) -C $(BPF_DIR) OUTPUT=$(OUTPUT) $(OUTPUT)libbpf.a
++	$(if $(LIBBPF_OUTPUT),@mkdir -p $(LIBBPF_OUTPUT))
++	$(Q)$(MAKE) -C $(BPF_DIR) OUTPUT=$(LIBBPF_OUTPUT) $(LIBBPF_OUTPUT)libbpf.a
+ 
+ $(LIBBPF)-clean:
+ 	$(call QUIET_CLEAN, libbpf)
+-	$(Q)$(MAKE) -C $(BPF_DIR) OUTPUT=$(OUTPUT) clean >/dev/null
++	$(Q)$(MAKE) -C $(BPF_DIR) OUTPUT=$(LIBBPF_OUTPUT) clean >/dev/null
+ 
+ prefix ?= /usr/local
+ bash_compdir ?= /usr/share/bash-completion/completions
+-- 
+2.17.1
+
