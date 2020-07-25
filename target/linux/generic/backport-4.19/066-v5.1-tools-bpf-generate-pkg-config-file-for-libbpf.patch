@@ -1,0 +1,108 @@
+From bb10608bfc498441d0de77a0a65c67076a170fae Mon Sep 17 00:00:00 2001
+From: Luca Boccassi <bluca@debian.org>
+Date: Thu, 28 Mar 2019 11:33:53 +0000
+Subject: [PATCH 1/2] tools/bpf: generate pkg-config file for libbpf
+
+Generate a libbpf.pc file at build time so that users can rely
+on pkg-config to find the library, its CFLAGS and LDFLAGS.
+
+Signed-off-by: Luca Boccassi <bluca@debian.org>
+Acked-by: Andrey Ignatov <rdna@fb.com>
+Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+
+(cherry picked from commit dd399ac9e343c7573c47d6820e4a23013c54749d)
+---
+ tools/lib/bpf/.gitignore         |  1 +
+ tools/lib/bpf/Makefile           | 19 ++++++++++++++++---
+ tools/lib/bpf/libbpf.pc.template | 12 ++++++++++++
+ 3 files changed, 29 insertions(+), 3 deletions(-)
+ create mode 100644 tools/lib/bpf/libbpf.pc.template
+
+diff --git a/tools/lib/bpf/.gitignore b/tools/lib/bpf/.gitignore
+index f81e549ddfdb..01eb9b677e27 100644
+--- a/tools/lib/bpf/.gitignore
++++ b/tools/lib/bpf/.gitignore
+@@ -1,2 +1,3 @@
+ libbpf_version.h
++libbpf.pc
+ FEATURE-DUMP.libbpf
+diff --git a/tools/lib/bpf/Makefile b/tools/lib/bpf/Makefile
+index 3624557550a1..ee0029ad4a2b 100644
+--- a/tools/lib/bpf/Makefile
++++ b/tools/lib/bpf/Makefile
+@@ -105,6 +105,8 @@ N		=
+ 
+ LIBBPF_VERSION = $(BPF_VERSION).$(BPF_PATCHLEVEL).$(BPF_EXTRAVERSION)
+ 
++PC_FILE		= libbpf.pc
++
+ # Set compile option CFLAGS
+ ifdef EXTRA_CFLAGS
+   CFLAGS := $(EXTRA_CFLAGS)
+@@ -144,8 +146,9 @@ include $(srctree)/tools/build/Makefile.include
+ 
+ BPF_IN    := $(OUTPUT)libbpf-in.o
+ LIB_FILE := $(addprefix $(OUTPUT),$(LIB_FILE))
++PC_FILE		:= $(addprefix $(OUTPUT),$(PC_FILE))
+ 
+-CMD_TARGETS = $(LIB_FILE)
++CMD_TARGETS = $(LIB_FILE) $(PC_FILE)
+ 
+ TARGETS = $(CMD_TARGETS)
+ 
+@@ -175,6 +178,12 @@ $(OUTPUT)libbpf.so: $(BPF_IN)
+ $(OUTPUT)libbpf.a: $(BPF_IN)
+ 	$(QUIET_LINK)$(RM) $@; $(AR) rcs $@ $^
+ 
++$(OUTPUT)libbpf.pc:
++	$(QUIET_GEN)sed -e "s|@PREFIX@|$(prefix)|" \
++		-e "s|@LIBDIR@|$(libdir_SQ)|" \
++		-e "s|@VERSION@|$(LIBBPF_VERSION)|" \
++		< libbpf.pc.template > $@
++
+ define do_install
+ 	if [ ! -d '$(DESTDIR_SQ)$2' ]; then		\
+ 		$(INSTALL) -d -m 755 '$(DESTDIR_SQ)$2';	\
+@@ -192,7 +201,11 @@ install_headers:
+ 		$(call do_install,libbpf.h,$(prefix)/include/bpf,644);
+ 		$(call do_install,btf.h,$(prefix)/include/bpf,644);
+ 
+-install: install_lib
++install_pkgconfig: $(PC_FILE)
++	$(call QUIET_INSTALL, $(PC_FILE)) \
++		$(call do_install,$(PC_FILE),$(libdir_SQ)/pkgconfig,644)
++
++install: install_lib install_pkgconfig
+ 
+ ### Cleaning rules
+ 
+@@ -201,7 +214,7 @@ config-clean:
+ 	$(Q)$(MAKE) -C $(srctree)/tools/build/feature/ clean >/dev/null
+ 
+ clean:
+-	$(call QUIET_CLEAN, libbpf) $(RM) *.o *~ $(TARGETS) *.a *.so .*.d .*.cmd \
++	$(call QUIET_CLEAN, libbpf) $(RM) *.o *~ $(TARGETS) *.a *.so .*.d .*.cmd *.pc \
+ 		$(RM) LIBBPF-CFLAGS
+ 	$(call QUIET_CLEAN, core-gen) $(RM) $(OUTPUT)FEATURE-DUMP.libbpf
+ 
+diff --git a/tools/lib/bpf/libbpf.pc.template b/tools/lib/bpf/libbpf.pc.template
+new file mode 100644
+index 000000000000..ac17fcef2108
+--- /dev/null
++++ b/tools/lib/bpf/libbpf.pc.template
+@@ -0,0 +1,12 @@
++# SPDX-License-Identifier: (LGPL-2.1 OR BSD-2-Clause)
++
++prefix=@PREFIX@
++libdir=@LIBDIR@
++includedir=${prefix}/include
++
++Name: libbpf
++Description: BPF library
++Version: @VERSION@
++Libs: -L${libdir} -lbpf
++Requires.private: libelf
++Cflags: -I${includedir}
+-- 
+2.17.1
+

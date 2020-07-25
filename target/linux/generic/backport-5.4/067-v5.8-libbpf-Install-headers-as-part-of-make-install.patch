@@ -1,0 +1,35 @@
+From fa1cdc9e5f523b70f75efd7ba5aae2a9200714ab Mon Sep 17 00:00:00 2001
+From: Nikolay Borisov <nborisov@suse.com>
+Date: Tue, 26 May 2020 20:46:12 +0300
+Subject: [PATCH 3/3] libbpf: Install headers as part of make install
+
+Current 'make install' results in only pkg-config and library binaries
+being installed. For consistency also install headers as part of
+"make install"
+
+Signed-off-by: Nikolay Borisov <nborisov@suse.com>
+Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+Acked-by: Andrii Nakryiko <andriin@fb.com>
+Link: https://lore.kernel.org/bpf/20200526174612.5447-1-nborisov@suse.com
+Signed-off-by: Alexei Starovoitov <ast@kernel.org>
+(cherry picked from commit 93581359e7aeb11358018f2e3a737776d1e899ae)
+---
+ tools/lib/bpf/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tools/lib/bpf/Makefile b/tools/lib/bpf/Makefile
+index 3ce026baff55..b457e8a6dcf3 100644
+--- a/tools/lib/bpf/Makefile
++++ b/tools/lib/bpf/Makefile
+@@ -264,7 +264,7 @@ install_pkgconfig: $(PC_FILE)
+ 	$(call QUIET_INSTALL, $(PC_FILE)) \
+ 		$(call do_install,$(PC_FILE),$(libdir_SQ)/pkgconfig,644)
+ 
+-install: install_lib install_pkgconfig
++install: install_lib install_pkgconfig install_headers
+ 
+ ### Cleaning rules
+ 
+-- 
+2.17.1
+
