@@ -1,0 +1,38 @@
+From 1c71df370a79066edf89b5b1d560e2996fda40c0 Mon Sep 17 00:00:00 2001
+From: Tony Ambardar <Tony.Ambardar@gmail.com>
+Date: Tue, 28 Jul 2020 04:06:19 -0700
+Subject: [PATCH] bpf: fix sysfs export of empty BTF section
+
+Fixes: 341dfcf8d78e ("btf: expose BTF info through sysfs")
+
+Signed-off-by: Tony Ambardar <Tony.Ambardar@gmail.com>
+---
+ kernel/bpf/sysfs_btf.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/kernel/bpf/sysfs_btf.c b/kernel/bpf/sysfs_btf.c
+index 3b495773de5a..3a80baf5515b 100644
+--- a/kernel/bpf/sysfs_btf.c
++++ b/kernel/bpf/sysfs_btf.c
+@@ -30,15 +30,15 @@ static struct kobject *btf_kobj;
+ 
+ static int __init btf_vmlinux_init(void)
+ {
+-	if (!__start_BTF)
++	bin_attr_btf_vmlinux.size = __stop_BTF - __start_BTF;
++
++	if (!__start_BTF || bin_attr_btf_vmlinux.size == 0)
+ 		return 0;
+ 
+ 	btf_kobj = kobject_create_and_add("btf", kernel_kobj);
+ 	if (!btf_kobj)
+ 		return -ENOMEM;
+ 
+-	bin_attr_btf_vmlinux.size = __stop_BTF - __start_BTF;
+-
+ 	return sysfs_create_bin_file(btf_kobj, &bin_attr_btf_vmlinux);
+ }
+ 
+-- 
+2.17.1
+
