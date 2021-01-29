@@ -36,6 +36,11 @@ tools-$(CONFIG_TARGET_tegra) += cbootimage cbootimage-configs
 tools-$(CONFIG_USES_MINOR) += kernel2minor
 tools-$(CONFIG_USE_SPARSE) += sparse
 
+# modern elfutils doesn't build on BSDen
+ifeq ($(HOST_OS),Linux)
+  tools-$(BUILD_TOOLCHAIN) += elfutils
+endif
+
 # builddir dependencies
 $(curdir)/autoconf/compile := $(curdir)/m4/compile
 $(curdir)/automake/compile := $(curdir)/m4/compile $(curdir)/autoconf/compile $(curdir)/pkgconf/compile $(curdir)/xz/compile
@@ -46,6 +51,7 @@ $(curdir)/cbootimage/compile += $(curdir)/automake/compile
 $(curdir)/cmake/compile += $(curdir)/libressl/compile
 $(curdir)/dosfstools/compile := $(curdir)/autoconf/compile $(curdir)/automake/compile
 $(curdir)/e2fsprogs/compile := $(curdir)/libtool/compile
+$(curdir)/elfutils/compile := $(curdir)/m4/compile $(curdir)/zlib/compile $(curdir)/lzma/compile
 $(curdir)/fakeroot/compile := $(curdir)/libtool/compile
 $(curdir)/findutils/compile := $(curdir)/bison/compile
 $(curdir)/firmware-utils/compile += $(curdir)/libressl/compile $(curdir)/zlib/compile
