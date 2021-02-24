@@ -17,7 +17,7 @@ PKG_HASH:=057d6522edf930fe52271cd616ae918fdb591a60809c9c01fa698041f764b9be
 
 PKG_MAINTAINER:=Tony Ambardar <itugrok@yahoo.com>
 
-PKG_USE_MIPS16:=0
+PKG_USE_MIPS16:=1
 PKG_BUILD_PARALLEL:=1
 PKG_INSTALL:=1
 
@@ -86,6 +86,8 @@ define Package/libbpf/description
   libbpf is a library for loading eBPF programs and reading and manipulating eBPF objects from user-space.
 endef
 
+# Debug assembler
+TARGET_CFLAGS += -Wa,-adhln=bpftest.s -g -fverbose-asm
 
 # LTO not compatible with DSO using PIC
 ifneq ($(BUILD_VARIANT),lib)
