@@ -20,9 +20,8 @@ PKG_FLAGS:=nonshared
 
 # Perf's makefile and headers are not relocatable and must be built from the
 # Linux sources directory
-#PKG_BUILD_DIR:=$(LINUX_DIR)/tools/kselftests-$(TARGET_DIR_NAME)
+#PKG_BUILD_DIR:=$(LINUX_DIR)/tools/testing/selftests/build-$(TARGET_DIR_NAME)
 
-include $(INCLUDE_DIR)/kernel.mk
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/nls.mk
 
@@ -30,7 +29,7 @@ define Package/kselftests
   SECTION:=devel
   CATEGORY:=Development
 #  DEPENDS:= +libelf +libdw +PACKAGE_libunwind:libunwind +libpthread +librt +objdump @!IN_SDK @!TARGET_arc770 @KERNEL_PERF_EVENTS
-  DEPENDS:= +libbpf +libcap +libelf +zlib +libpthread +librt @!IN_SDK
+  DEPENDS:= +libcap +libelf +zlib +libpthread +librt @!IN_SDK
   TITLE:=Linux Kernel Self-testing
   VERSION:=$(LINUX_VERSION)-$(PKG_RELEASE)
   URL:=http://www.kernel.org
@@ -40,7 +39,7 @@ define Package/kselftests/description
   kselftests is the Linux kernel self-test suite
 endef
 
-HOST_CFLAGS += -I$(LINUX_DIR)/tools/include
+#HOST_CFLAGS += -I$(LINUX_DIR)/tools/include
 
 TARGET_LDFLAGS += $(INTL_LDFLAGS)
 
@@ -74,17 +73,24 @@ TARGET_LDFLAGS += $(INTL_LDFLAGS)
 
 TEST_TARGETS = bpf
 
-MAKE_PATH:=tools/testing/selftests
+#MAKE_PATH:=tools/testing/selftests
 
 #	CC="$(TARGET_CC)" \
 #	LD="$(TARGET_CROSS)ld" \
+
+#	HOSTLDFLAGS="$(HOST_LDFLAGS)" \
+#	HOSTCFLAGS="$(HOST_CFLAGS)" \
+#	KBUILD_HOSTCFLAGS="$(HOST_CFLAGS)" \
 
 MAKE_VARS = \
 	ARCH="$(LINUX_KARCH)" \
 	CROSS_COMPILE="$(TARGET_CROSS)" \
 	EXTRA_CFLAGS="$(TARGET_CFLAGS) $(TARGET_CPPFLAGS)" \
 	LDFLAGS="$(TARGET_LDFLAGS)" \
-	KBUILD_HOSTCFLAGS="$(HOST_CFLAGS)"
+	TOOLCHAIN_INCLUDE="$(TOOLCHAIN_DIR)/include" \
+	BPFTOOL=/usr/local/bin/bpftool \
+	VMLINUX_BTF="$(LINUX_DIR)/vmlinux"
+#	VMLINUX_BTF=/home/kodidev/openwrt-project/build_dir/target-mips_24kc_musl/linux-malta_be/linux-5.10.32/vmlinux
 
 MAKE_FLAGS = \
 	$(if $(findstring c,$(OPENWRT_VERBOSE)),V=1,V='') \
@@ -92,7 +98,7 @@ MAKE_FLAGS = \
 	O=$(PKG_BUILD_DIR) \
 	TARGETS="$(TEST_TARGETS)" \
 	prefix=/usr \
-	--no-print-directory
+	--no-print-directory kselftest
 
 MAKE_INSTALL_FLAGS += \
 	INSTALL_PATH="$(PKG_INSTALL_DIR)/kselftests"
