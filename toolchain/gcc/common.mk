@@ -109,8 +109,6 @@ GCC_CONFIGURE:= \
 		--with-host-libstdcxx=-lstdc++ \
 		$(SOFT_FLOAT_CONFIG_OPTION) \
 		$(call qstrip,$(CONFIG_EXTRA_GCC_CONFIG_OPTIONS)) \
-		$(if $(CONFIG_mips64)$(CONFIG_mips64el),--with-arch=mips64 \
-			--with-abi=$(call qstrip,$(CONFIG_MIPS64_ABI))) \
 		$(if $(CONFIG_arc),--with-cpu=$(CONFIG_CPU_TYPE)) \
 		--with-gmp=$(TOPDIR)/staging_dir/host \
 		--with-mpfr=$(TOPDIR)/staging_dir/host \
@@ -120,7 +118,18 @@ GCC_CONFIGURE:= \
 		--enable-__cxa_atexit \
 		--disable-libstdcxx-dual-abi \
 		--with-default-libstdcxx-abi=new
+ifneq ($(CONFIG_mips64)$(CONFIG_mips64el),)
+  GCC_CONFIGURE += --with-abi=$(call qstrip,$(CONFIG_MIPS64_ABI))
+  ifeq ($(CONFIG_CPU_TYPE), "mips64r6")
+    GCC_CONFIGURE += --with-arch=mips64r6
+  else
+    GCC_CONFIGURE += --with-arch=mips64
+  endif
+endif
 ifneq ($(CONFIG_mips)$(CONFIG_mipsel),)
+  ifeq ($(CONFIG_CPU_TYPE), "mips32r6")
+    GCC_CONFIGURE += --with-arch=mips32r6
+  endif
   GCC_CONFIGURE += --with-mips-plt
 endif
 
