@@ -6,7 +6,7 @@ include $(TOPDIR)/rules.mk
 
 BOARD:=malta
 BOARDNAME:=MIPS Malta CoreLV board (qemu)
-SUBTARGETS:=le be le64 be64
+SUBTARGETS:=le be le64 be64 be32r6 be64r6
 INITRAMFS_EXTRA_FILES:=
 FEATURES:=cpiogz ext4 ramdisk squashfs targz
 
