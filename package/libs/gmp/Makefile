@@ -45,6 +45,7 @@ CONFIGURE_ARGS += \
 	--enable-static \
 	--without-readline \
 	--disable-fft \
+	--disable-assembly \
 
 define Build/Compile
 	$(call Build/Compile/Default, \
