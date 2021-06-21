@@ -302,8 +302,8 @@ Signed-off-by: Felix Fietkau <nbd@nbd.name>
 +
 +}
 +
- static int apply_r_mips_26(struct module *me, u32 *location,
- 			   u32 base, Elf_Addr v, bool rela)
+ static int apply_r_mips_26(struct module *me, u32 *location, u32 base,
+ 			   Elf_Addr v)
  {
 +	u32 ofs = base & 0x03ffffff;
 +
