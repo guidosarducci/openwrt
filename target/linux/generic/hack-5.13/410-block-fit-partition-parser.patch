@@ -1,13 +1,13 @@
 --- a/block/blk.h
 +++ b/block/blk.h
-@@ -357,6 +357,7 @@ char *disk_name(struct gendisk *hd, int
+@@ -349,6 +349,7 @@ char *disk_name(struct gendisk *hd, int
  #define ADDPART_FLAG_NONE	0
  #define ADDPART_FLAG_RAID	1
  #define ADDPART_FLAG_WHOLEDISK	2
 +#define ADDPART_FLAG_ROOTDEV	4
- void delete_partition(struct hd_struct *part);
  int bdev_add_partition(struct block_device *bdev, int partno,
  		sector_t start, sector_t length);
+ int bdev_del_partition(struct block_device *bdev, int partno);
 --- a/block/partitions/Kconfig
 +++ b/block/partitions/Kconfig
 @@ -101,6 +101,13 @@ config ATARI_PARTITION
@@ -52,7 +52,7 @@
 +int parse_fit_partitions(struct parsed_partitions *state, u64 start_sector, u64 nr_sectors, int *slot, int add_remain);
 --- a/block/partitions/core.c
 +++ b/block/partitions/core.c
-@@ -10,6 +10,10 @@
+@@ -11,6 +11,10 @@
  #include <linux/vmalloc.h>
  #include <linux/blktrace_api.h>
  #include <linux/raid/detect.h>
@@ -63,7 +63,7 @@
  #include "check.h"
  
  static int (*check_part[])(struct parsed_partitions *) = {
-@@ -46,6 +50,9 @@ static int (*check_part[])(struct parsed
+@@ -47,6 +51,9 @@ static int (*check_part[])(struct parsed
  #ifdef CONFIG_EFI_PARTITION
  	efi_partition,		/* this must come before msdos */
  #endif
@@ -73,17 +73,17 @@
  #ifdef CONFIG_SGI_PARTITION
  	sgi_partition,
  #endif
-@@ -215,6 +222,18 @@ static ssize_t part_discard_alignment_sh
- 				p->start_sect));
+@@ -218,6 +225,18 @@ static ssize_t part_discard_alignment_sh
+ 				bdev->bd_start_sect));
  }
  
 +static ssize_t part_name_show(struct device *dev,
 +			      struct device_attribute *attr, char *buf)
 +{
-+	struct hd_struct *p = dev_to_part(dev);
++	struct block_device *bdev = dev_to_bdev(dev);
 +
-+	if (p->info && p->info->volname)
-+		return sprintf(buf, "%s\n", p->info->volname);
++	if (bdev->bd_meta_info && bdev->bd_meta_info->volname[0])
++		return sprintf(buf, "%s\n", bdev->bd_meta_info->volname);
 +
 +	buf[0] = '\0';
 +	return 0;
@@ -92,7 +92,7 @@
  static DEVICE_ATTR(partition, 0444, part_partition_show, NULL);
  static DEVICE_ATTR(start, 0444, part_start_show, NULL);
  static DEVICE_ATTR(size, 0444, part_size_show, NULL);
-@@ -223,6 +242,7 @@ static DEVICE_ATTR(alignment_offset, 044
+@@ -226,6 +245,7 @@ static DEVICE_ATTR(alignment_offset, 044
  static DEVICE_ATTR(discard_alignment, 0444, part_discard_alignment_show, NULL);
  static DEVICE_ATTR(stat, 0444, part_stat_show, NULL);
  static DEVICE_ATTR(inflight, 0444, part_inflight_show, NULL);
@@ -100,7 +100,7 @@
  #ifdef CONFIG_FAIL_MAKE_REQUEST
  static struct device_attribute dev_attr_fail =
  	__ATTR(make-it-fail, 0644, part_fail_show, part_fail_store);
-@@ -237,6 +257,7 @@ static struct attribute *part_attrs[] =
+@@ -240,6 +260,7 @@ static struct attribute *part_attrs[] =
  	&dev_attr_discard_alignment.attr,
  	&dev_attr_stat.attr,
  	&dev_attr_inflight.attr,
@@ -108,9 +108,9 @@
  #ifdef CONFIG_FAIL_MAKE_REQUEST
  	&dev_attr_fail.attr,
  #endif
-@@ -694,6 +715,11 @@ static bool blk_add_partition(struct gen
+@@ -595,6 +616,11 @@ static bool blk_add_partition(struct gen
  	    (state->parts[p].flags & ADDPART_FLAG_RAID))
- 		md_autodetect_dev(part_to_dev(part)->devt);
+ 		md_autodetect_dev(part->bd_dev);
  
 +#ifdef CONFIG_FIT_PARTITION
 +	if ((state->parts[p].flags & ADDPART_FLAG_ROOTDEV) && ROOT_DEV == 0)
@@ -196,7 +196,7 @@
  	.flush		= mtdblock_flush,
 --- a/drivers/mtd/mtd_blkdevs.c
 +++ b/drivers/mtd/mtd_blkdevs.c
-@@ -407,18 +407,8 @@ int add_mtd_blktrans_dev(struct mtd_blkt
+@@ -379,18 +379,8 @@ int add_mtd_blktrans_dev(struct mtd_blkt
  	gd->first_minor = (new->devnum) << tr->part_bits;
  	gd->fops = &mtd_block_ops;
  

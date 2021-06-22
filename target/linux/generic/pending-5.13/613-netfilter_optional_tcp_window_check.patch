@@ -15,10 +15,10 @@ Signed-off-by: Felix Fietkau <nbd@nbd.name>
 +/* Do not check the TCP window for incoming packets  */
 +static int nf_ct_tcp_no_window_check __read_mostly = 1;
 +
- /* "Be conservative in what you do,
-     be liberal in what you accept from others."
-     If it's non-zero, we mark only out of window RST segments as INVALID. */
-@@ -476,6 +479,9 @@ static bool tcp_in_window(const struct n
+   /* FIXME: Examine ipfilter's timeouts and conntrack transitions more
+      closely.  They're more complex. --RR */
+ 
+@@ -464,6 +467,9 @@ static bool tcp_in_window(const struct n
  	s32 receiver_offset;
  	bool res, in_recv_win;
  
@@ -28,7 +28,7 @@ Signed-off-by: Felix Fietkau <nbd@nbd.name>
  	/*
  	 * Get the required data from the packet.
  	 */
-@@ -1130,7 +1136,7 @@ int nf_conntrack_tcp_packet(struct nf_co
+@@ -1114,7 +1120,7 @@ int nf_conntrack_tcp_packet(struct nf_co
  		 IP_CT_TCP_FLAG_DATA_UNACKNOWLEDGED &&
  		 timeouts[new_state] > timeouts[TCP_CONNTRACK_UNACK])
  		timeout = timeouts[TCP_CONNTRACK_UNACK];
@@ -49,7 +49,7 @@ Signed-off-by: Felix Fietkau <nbd@nbd.name>
  static bool enable_hooks __read_mostly;
  MODULE_PARM_DESC(enable_hooks, "Always enable conntrack hooks");
  module_param(enable_hooks, bool, 0000);
-@@ -652,6 +655,7 @@ enum nf_ct_sysctl_index {
+@@ -660,6 +663,7 @@ enum nf_ct_sysctl_index {
  	NF_SYSCTL_CT_PROTO_TIMEOUT_GRE_STREAM,
  #endif
  
@@ -57,7 +57,7 @@ Signed-off-by: Felix Fietkau <nbd@nbd.name>
  	__NF_SYSCTL_CT_LAST_SYSCTL,
  };
  
-@@ -978,6 +982,13 @@ static struct ctl_table nf_ct_sysctl_tab
+@@ -982,6 +986,13 @@ static struct ctl_table nf_ct_sysctl_tab
  		.proc_handler   = proc_dointvec_jiffies,
  	},
  #endif
