@@ -643,6 +643,10 @@ if KERNEL_CGROUPS
 		default n
 		select KERNEL_HUGETLB_PAGE
 
+	config KERNEL_CGROUP_MISC
+		bool "Misc resource controller"
+		default n
+
 	config KERNEL_CGROUP_PIDS
 		bool "PIDs cgroup subsystem"
 		default y
