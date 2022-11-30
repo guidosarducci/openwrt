@@ -832,7 +832,8 @@ define Device/netgear_orbi
 		append-rootfs | pad-rootfs | netgear-dni
 	IMAGE/sysupgrade.bin/squashfs := append-rootfs | pad-to 64k | \
 		sysupgrade-tar rootfs=$$$$@ | append-metadata
-	DEVICE_PACKAGES := ath10k-firmware-qca9984-ct e2fsprogs kmod-fs-ext4 losetup
+	DEVICE_PACKAGES := ath10k-firmware-qca9984-ct e2fsprogs kmod-fs-ext4 \
+		losetup kmod-leds-tlc591xx
 endef
 
 define Device/netgear_rbx50
