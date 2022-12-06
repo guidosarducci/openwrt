@@ -7,7 +7,7 @@
 
 / {
 	model = "Linksys WHW01 v1";
-	compatible = "linksys,whw01-v1";
+	compatible = "linksys,whw01";
 
 	aliases {
 		serial0 = &blsp1_uart1;

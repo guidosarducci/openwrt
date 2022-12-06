@@ -727,15 +727,13 @@ define Device/linksys_whw01-v1
 	DEVICE_MODEL := WHW01
 	DEVICE_VARIANT := v1
 	KERNEL_SIZE := 6144k
-	IMAGE_SIZE := 28704512  # 28032k minus linksys signature (256-bytes).
+	IMAGE_SIZE := 75776K
 	SOC := qcom-ipq4018
 	BLOCKSIZE := 128k
 	PAGESIZE := 2048
 	UBINIZE_OPTS := -E 5    # EOD marks to "hide" factory sig at EOF
 	IMAGES += factory.bin
-	IMAGE/factory.bin := append-kernel | pad-to $$$$(KERNEL_SIZE) | \
-		append-ubi | linksys-image type=WHW01 | pad-to $$$$(PAGESIZE) | \
-		check-size
+	IMAGE/factory.bin := append-kernel | pad-to $$$$(KERNEL_SIZE) | append-ubi | linksys-image type=WHW01
 	DEVICE_PACKAGES := uboot-envtools kmod-leds-pca963x
 endef
 # Missing DSA Setup
