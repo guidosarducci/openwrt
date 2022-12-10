@@ -6,7 +6,7 @@
 #include <dt-bindings/input/input.h>
 
 / {
-	model = "Linksys WHW01 v1";
+	model = "Linksys WHW01";
 	compatible = "linksys,whw01";
 
 	aliases {
@@ -305,14 +305,14 @@
 
 &wifi0 {
 	status = "okay";
-	qcom,ath10k-calibration-variant = "linksys-whw01-v1";
+	qcom,ath10k-calibration-variant = "linksys-whw01";
 	nvmem-cell-names = "pre-calibration";
 	nvmem-cells = <&precal_art_1000>;
 };
 
 &wifi1 {
 	status = "okay";
-	qcom,ath10k-calibration-variant = "linksys-whw01-v1";
+	qcom,ath10k-calibration-variant = "linksys-whw01";
 	nvmem-cell-names = "pre-calibration";
 	nvmem-cells = <&precal_art_5000>;
 };
