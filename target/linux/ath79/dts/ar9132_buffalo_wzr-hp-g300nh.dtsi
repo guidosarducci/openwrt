@@ -178,7 +178,7 @@
 
 		gpio-sda = <&gpio 19 GPIO_ACTIVE_HIGH>;
 		gpio-sck = <&gpio 20 GPIO_ACTIVE_HIGH>;
-		mii-bus = <&mdio0>;
+		mii-bus = <&mdio1>;
 
 		mdio-bus {
 			status = "okay";
