@@ -178,7 +178,7 @@
 
 		gpio-sda = <&gpio 19 GPIO_ACTIVE_HIGH>;
 		gpio-sck = <&gpio 20 GPIO_ACTIVE_HIGH>;
-//		mii-bus = <&mdio1>;
+		mii-bus = <&mdio0>;
 
 		mdio-bus {
 			status = "okay";
@@ -202,6 +202,7 @@
 	status = "disabled";
 
 	phy-mode = "rgmii";
+	phy-handle = <&phy4>;
 	nvmem-cells = <&macaddr_art_1120c>;
 	nvmem-cell-names = "mac-address";
 
@@ -226,7 +227,6 @@
 	pll-handle = <&pll>;
 
 	phy-mode = "rgmii";
-	phy-handle = <&phy4>;
 	resets = <&rst 13>;
 	reset-names = "mac";
 	qca,mac-idx = <1>;
