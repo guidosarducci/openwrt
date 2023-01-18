@@ -202,7 +202,6 @@
 	status = "disabled";
 
 	phy-mode = "rgmii";
-	phy-handle = <&phy4>;
 	nvmem-cells = <&macaddr_art_1120c>;
 	nvmem-cell-names = "mac-address";
 
@@ -227,6 +226,7 @@
 	pll-handle = <&pll>;
 
 	phy-mode = "rgmii";
+	phy-handle = <&phy4>;
 	resets = <&rst 13>;
 	reset-names = "mac";
 	qca,mac-idx = <1>;
