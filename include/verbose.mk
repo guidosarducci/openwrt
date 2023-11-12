@@ -30,14 +30,13 @@ ifeq ($(IS_TTY),1)
 endif
 
 define ERROR_MESSAGE
-  printf "$(_R)%s$(_N)\n" "$(1)" $(ERROR_MESSAGE_REDIR)
+  printf "$(_R)%s$(_N)\n" "$(1)" >&8
 endef
 
 ifeq ($(findstring s,$(OPENWRT_VERBOSE)),)
   define MESSAGE
 	printf "$(_Y)%s$(_N)\n" "$(1)" >&8
   endef
-  ERROR_MESSAGE_REDIR:=>&8
 
   ifeq ($(QUIET),1)
     ifneq ($(CURDIR),$(TOPDIR))
@@ -61,5 +60,4 @@ else
   define MESSAGE
     printf "%s\n" "$(1)"
   endef
-  ERROR_MESSAGE_REDIR:=>&2
 endif
