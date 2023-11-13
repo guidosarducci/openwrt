@@ -17,7 +17,7 @@ ifeq ($(OPENWRT_VERBOSE),99)
 endif
 
 ifeq ($(NO_TRACE_MAKE),)
-NO_TRACE_MAKE := $(MAKE) V=s$(OPENWRT_VERBOSE)
+NO_TRACE_MAKE := 8>&1 9>&2 $(MAKE) V=s$(OPENWRT_VERBOSE)
 export NO_TRACE_MAKE
 endif
 
@@ -31,11 +31,11 @@ endif
 
 ifeq ($(findstring s,$(OPENWRT_VERBOSE)),)
   define MESSAGE
-	printf "$(_Y)%s$(_N)\n" "$(1)" >&8
+	printf "FD=8 V=$(OPENWRT_VERBOSE):$(_Y)%s$(_N)\n" "$(1)" >&8
   endef
 
   define ERROR_MESSAGE
-	printf "$(_R)%s$(_N)\n" "$(1)" >&8
+	printf "FD=9 V=$(OPENWRT_VERBOSE):$(_R)%s$(_N)\n" "$(1)" >&9
   endef
 
   ifeq ($(QUIET),1)
@@ -45,7 +45,7 @@ ifeq ($(findstring s,$(OPENWRT_VERBOSE)),)
       _DIR:=
     endif
     _NULL:=$(if $(MAKECMDGOALS),$(shell \
-		$(call MESSAGE, make[$(MAKELEVEL)]$(if $(_DIR), -C $(_DIR)) $(MAKECMDGOALS)); \
+		$(call MESSAGE, V=$(OPENWRT_VERBOSE):make[$(MAKELEVEL)]$(if $(_DIR), -C $(_DIR)) $(MAKECMDGOALS)); \
     ))
     SUBMAKE=$(MAKE)
   else
@@ -58,7 +58,9 @@ ifeq ($(findstring s,$(OPENWRT_VERBOSE)),)
 else
   SUBMAKE=$(MAKE) -w
   define MESSAGE
-    printf "%s\n" "$(1)"
+    printf "FD=1 V=$(OPENWRT_VERBOSE):%s\n" "$(1)"
   endef
-  ERROR_MESSAGE=$(MESSAGE)
+  define ERROR_MESSAGE
+    printf "FD=2 V=$(OPENWRT_VERBOSE):%s\n" "$(1)" >&2
+  endef
 endif
