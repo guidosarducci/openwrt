@@ -8,21 +8,22 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=argp-standalone
-PKG_VERSION:=1.3
-PKG_RELEASE:=2
+PKG_VERSION:=1.5.0
+PKG_RELEASE:=1
 
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:=http://www.lysator.liu.se/~nisse/misc/
-PKG_HASH:=dec79694da1319acd2238ce95df57f3680fea2482096e483323fddf3d818d8be
+PKG_SOURCE_PROTO:=git
+PKG_SOURCE_URL:=https://github.com/argp-standalone/argp-standalone
+PKG_SOURCE_VERSION:=$(PKG_VERSION)
+PKG_HASH:=4a93021dba421c04768dd2681dd5744c9843c1c2f097baab3872d965580c4706
+
 PKG_MAINTAINER:=Ted Hess <thess@kitschensync.net>
-
-PKG_LICENSE:=LGPL-2.1
-PKG_LICENSE:=Makefile.am
+PKG_LICENSE:=LGPL-2.1-or-later
 
 PKG_BUILD_FLAGS:=no-lto
 
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/host-build.mk
+include $(INCLUDE_DIR)/meson.mk
 
 define Package/argp-standalone
   SECTION:=libs
@@ -35,18 +36,12 @@ define Package/argp-standalone/description
   GNU libc hierarchial argument parsing library broken out from glibc.
 endef
 
-MAKE_FLAGS += \
-	CFLAGS="$(TARGET_CFLAGS) $(FPIC) -std=gnu89"
-
-HOST_MAKE_FLAGS += \
-	CFLAGS="$(HOST_CFLAGS) $(FPIC) -std=gnu89"
-
 define Build/InstallDev
 	$(INSTALL_DIR) $(1)/usr/include
-	$(CP)   $(PKG_BUILD_DIR)/argp.h \
+	$(CP)   $(PKG_INSTALL_DIR)/usr/include/argp.h \
 		$(1)/usr/include/
 	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP)   $(PKG_BUILD_DIR)/libargp.a \
+	$(CP)   $(PKG_INSTALL_DIR)/usr/lib/libargp.a \
 		$(1)/usr/lib/
 endef
 
