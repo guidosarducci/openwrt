@@ -367,7 +367,7 @@ config TARGET_SUFFIX
 	string
 	default "gnueabi"         if USE_GLIBC && (arm || armeb)
 	default "gnu"             if USE_GLIBC && !(arm || armeb)
-	default "muslgnueabi"     if USE_MUSL && (arm || armeb)
+	default "musleabi"        if USE_MUSL && (arm || armeb)
 	default "musl"            if USE_MUSL && !(arm || armeb)
 
 config MIPS64_ABI
