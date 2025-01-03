@@ -802,6 +802,11 @@ $(eval $(call KernelPackage,ikconfig))
 define KernelPackage/zram
   SUBMENU:=$(OTHER_MENU)
   TITLE:=ZRAM
+  DEPENDS:= \
+	+(ZRAM_DEF_COMP_LZORLE||ZRAM_DEF_COMP_LZO):kmod-lib-lzo \
+	+ZRAM_DEF_COMP_LZ4:kmod-lib-lz4 \
+	+ZRAM_DEF_COMP_LZ4HC:kmod-lib-lz4hc \
+	+ZRAM_DEF_COMP_ZSTD:kmod-lib-zstd
   KCONFIG:= \
 	CONFIG_ZSMALLOC \
 	CONFIG_ZRAM \
@@ -826,23 +831,18 @@ define KernelPackage/zram/config
 
     config ZRAM_DEF_COMP_LZORLE
             bool "lzo-rle"
-            select PACKAGE_kmod-lib-lzo
 
     config ZRAM_DEF_COMP_LZO
             bool "lzo"
-            select PACKAGE_kmod-lib-lzo
 
     config ZRAM_DEF_COMP_LZ4
             bool "lz4"
-            select PACKAGE_kmod-lib-lz4
 
     config ZRAM_DEF_COMP_LZ4HC
             bool "lz4-hc"
-            select PACKAGE_kmod-lib-lz4hc
 
     config ZRAM_DEF_COMP_ZSTD
             bool "zstd"
-            select PACKAGE_kmod-lib-zstd
 
     endchoice
   endif
