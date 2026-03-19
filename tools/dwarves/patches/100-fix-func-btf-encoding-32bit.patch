@@ -1,0 +1,184 @@
+From 73919b285fab9d52983a4585de60104e05dddb30 Mon Sep 17 00:00:00 2001
+In-Reply-To: <20250502070318.1561924-1-tony.ambardar@gmail.com>
+References: <20250502070318.1561924-1-tony.ambardar@gmail.com>
+From: Tony Ambardar <tony.ambardar@gmail.com>
+Date: Tue, 20 May 2025 19:13:54 -0700
+Subject: [PATCH dwarves v3] dwarf_loader: Fix skipped encoding of function BTF
+ on 32-bit systems
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+To: dwarves@vger.kernel.org,
+    bpf@vger.kernel.org
+Cc: Alan Maguire <alan.maguire@oracle.com>,
+    Arnaldo Carvalho de Melo <acme@kernel.org>,
+    Andrii Nakryiko <andrii@kernel.org>,
+    Alexei Starovoitov <ast@kernel.org>,
+    Daniel Borkmann <daniel@iogearbox.net>
+
+I encountered an issue building BTF kernels for 32-bit armhf, where many
+functions are missing in BTF data:
+
+  LD      vmlinux
+  BTFIDS  vmlinux
+WARN: resolve_btfids: unresolved symbol vfs_truncate
+WARN: resolve_btfids: unresolved symbol vfs_fallocate
+WARN: resolve_btfids: unresolved symbol scx_bpf_select_cpu_dfl
+WARN: resolve_btfids: unresolved symbol scx_bpf_pick_idle_cpu_node
+WARN: resolve_btfids: unresolved symbol scx_bpf_pick_idle_cpu
+WARN: resolve_btfids: unresolved symbol scx_bpf_pick_any_cpu_node
+WARN: resolve_btfids: unresolved symbol scx_bpf_pick_any_cpu
+WARN: resolve_btfids: unresolved symbol scx_bpf_kick_cpu
+WARN: resolve_btfids: unresolved symbol scx_bpf_exit_bstr
+WARN: resolve_btfids: unresolved symbol scx_bpf_dsq_nr_queued
+WARN: resolve_btfids: unresolved symbol scx_bpf_dsq_move_vtime
+WARN: resolve_btfids: unresolved symbol scx_bpf_dsq_move_to_local
+WARN: resolve_btfids: unresolved symbol scx_bpf_dsq_move
+WARN: resolve_btfids: unresolved symbol scx_bpf_dsq_insert_vtime
+WARN: resolve_btfids: unresolved symbol scx_bpf_dsq_insert
+WARN: resolve_btfids: unresolved symbol scx_bpf_dispatch_vtime_from_dsq
+WARN: resolve_btfids: unresolved symbol scx_bpf_dispatch_vtime
+WARN: resolve_btfids: unresolved symbol scx_bpf_dispatch_from_dsq_set_vtime
+WARN: resolve_btfids: unresolved symbol scx_bpf_dispatch_from_dsq_set_slice
+WARN: resolve_btfids: unresolved symbol scx_bpf_dispatch_from_dsq
+WARN: resolve_btfids: unresolved symbol scx_bpf_dispatch
+WARN: resolve_btfids: unresolved symbol scx_bpf_destroy_dsq
+WARN: resolve_btfids: unresolved symbol scx_bpf_create_dsq
+WARN: resolve_btfids: unresolved symbol scx_bpf_consume
+WARN: resolve_btfids: unresolved symbol bpf_throw
+WARN: resolve_btfids: unresolved symbol bpf_sock_ops_enable_tx_tstamp
+WARN: resolve_btfids: unresolved symbol bpf_percpu_obj_new_impl
+WARN: resolve_btfids: unresolved symbol bpf_obj_new_impl
+WARN: resolve_btfids: unresolved symbol bpf_lookup_user_key
+WARN: resolve_btfids: unresolved symbol bpf_lookup_system_key
+WARN: resolve_btfids: unresolved symbol bpf_iter_task_vma_new
+WARN: resolve_btfids: unresolved symbol bpf_iter_scx_dsq_new
+WARN: resolve_btfids: unresolved symbol bpf_get_kmem_cache
+WARN: resolve_btfids: unresolved symbol bpf_dynptr_from_xdp
+WARN: resolve_btfids: unresolved symbol bpf_dynptr_from_skb
+WARN: resolve_btfids: unresolved symbol bpf_cgroup_from_id
+  NM      System.map
+
+After further debugging this can be reproduced more simply:
+
+$ pahole -J -j --btf_features=decl_tag,consistent_func,decl_tag_kfuncs .tmp_vmlinux_armhf
+btf_encoder__tag_kfunc: failed to find kfunc 'scx_bpf_select_cpu_dfl' in BTF
+btf_encoder__tag_kfuncs: failed to tag kfunc 'scx_bpf_select_cpu_dfl'
+
+$ pfunct -Fbtf -E -f scx_bpf_select_cpu_dfl .tmp_vmlinux_armhf
+<nothing>
+
+$ pfunct -Fdwarf -E -f scx_bpf_select_cpu_dfl .tmp_vmlinux_armhf
+s32 scx_bpf_select_cpu_dfl(struct task_struct * p, s32 prev_cpu, u64 wake_flags, bool * is_idle);
+
+$ pahole -J -j --btf_features=decl_tag,decl_tag_kfuncs .tmp_vmlinux_armhf
+
+$ pfunct -Fbtf -E -f scx_bpf_select_cpu_dfl .tmp_vmlinux_armhf
+bpf_kfunc s32 scx_bpf_select_cpu_dfl(struct task_struct * p, s32 prev_cpu, u64 wake_flags, bool * is_idle);
+
+The key things to note are the pahole 'consistent_func' feature and the u64
+'wake_flags' parameter vs. arm 32-bit registers. These point to existing
+code handling arguments larger than register-size, allowing them to be
+BTF encoded but only if structs.
+
+Generalize the code for any argument type larger than register size (i.e.
+size > cu->addr_size). This should work for integral or aggregate types,
+and also avoids a bug in the current code where a register-sized struct
+could be mistaken for larger. Note that zero-sized arguments will still
+be marked as inconsistent and not encoded.
+
+Fixes: a53c58158b76 ("dwarf_loader: Mark functions that do not use expected registers for params")
+Tested-by: Alexis Lothoré <alexis.lothore@bootlin.com>
+Tested-by: Alan Maguire <alan.maguire@oracle.com>
+Signed-off-by: Tony Ambardar <tony.ambardar@gmail.com>
+---
+v2 -> v3:
+ - Added Tested-by: from Alexis and Alan.
+ - Revert support for encoding 0-sized structs (as v1) after discussion:
+   https://lore.kernel.org/dwarves/9a41b21f-c0ae-4298-bf95-09d0cdc3f3ab@oracle.com/
+ - Inline param__is_wide() and clarify some naming/wording.
+
+v1 -> v2:
+ - Update to preserve existing behaviour where zero-sized struct params
+   still permit the function to be encoded, as noted by Alan.
+
+---
+ dwarf_loader.c | 37 ++++++++++++-------------------------
+ 1 file changed, 12 insertions(+), 25 deletions(-)
+
+diff --git a/dwarf_loader.c b/dwarf_loader.c
+index e1ba7bc..134a76b 100644
+--- a/dwarf_loader.c
++++ b/dwarf_loader.c
+@@ -2914,23 +2914,9 @@ out:
+ 	return 0;
+ }
+ 
+-static bool param__is_struct(struct cu *cu, struct tag *tag)
++static inline bool param__is_wide(struct cu *cu, struct tag *tag)
+ {
+-	struct tag *type = cu__type(cu, tag->type);
+-
+-	if (!type)
+-		return false;
+-
+-	switch (type->tag) {
+-	case DW_TAG_structure_type:
+-		return true;
+-	case DW_TAG_const_type:
+-	case DW_TAG_typedef:
+-		/* handle "typedef struct", const parameter */
+-		return param__is_struct(cu, type);
+-	default:
+-		return false;
+-	}
++	return tag__size(tag, cu) > cu->addr_size;
+ }
+ 
+ static int cu__resolve_func_ret_types_optimized(struct cu *cu)
+@@ -2942,9 +2928,9 @@ static int cu__resolve_func_ret_types_optimized(struct cu *cu)
+ 		struct tag *tag = pt->entries[i];
+ 		struct parameter *pos;
+ 		struct function *fn = tag__function(tag);
+-		bool has_unexpected_reg = false, has_struct_param = false;
++		bool has_unexpected_reg = false, has_wide_param = false;
+ 
+-		/* mark function as optimized if parameter is, or
++		/* Mark function as optimized if parameter is, or
+ 		 * if parameter does not have a location; at this
+ 		 * point location presence has been marked in
+ 		 * abstract origins for cases where a parameter
+@@ -2953,10 +2939,11 @@ static int cu__resolve_func_ret_types_optimized(struct cu *cu)
+ 		 *
+ 		 * Also mark functions which, due to optimization,
+ 		 * use an unexpected register for a parameter.
+-		 * Exception is functions which have a struct
+-		 * as a parameter, as multiple registers may
+-		 * be used to represent it, throwing off register
+-		 * to parameter mapping.
++		 * Exception is functions with a wide parameter,
++		 * as single register won't be used to represent
++		 * it, throwing off register to parameter mapping.
++		 * Examples include large structs or 64-bit types
++		 * on a 32-bit arch.
+ 		 */
+ 		ftype__for_each_parameter(&fn->proto, pos) {
+ 			if (pos->optimized || !pos->has_loc)
+@@ -2967,11 +2954,11 @@ static int cu__resolve_func_ret_types_optimized(struct cu *cu)
+ 		}
+ 		if (has_unexpected_reg) {
+ 			ftype__for_each_parameter(&fn->proto, pos) {
+-				has_struct_param = param__is_struct(cu, &pos->tag);
+-				if (has_struct_param)
++				has_wide_param = param__is_wide(cu, &pos->tag);
++				if (has_wide_param)
+ 					break;
+ 			}
+-			if (!has_struct_param)
++			if (!has_wide_param)
+ 				fn->proto.unexpected_reg = 1;
+ 		}
+ 
+-- 
+2.34.1
+
